@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Receipt Upload</title>
+</head>
+<body>
+  <h2>Upload Receipt</h2>
+
+  <input type="file" id="fileInput" accept="image/*" />
+  <br><br>
+  <button onclick="uploadReceipt()">Upload Receipt</button>
+
+  <p id="status"></p>
+
+  <script>
+  async function uploadReceipt() {
+    const fileInput = document.getElementById("fileInput");
+    const status = document.getElementById("status");
+
+    if (!fileInput.files.length) {
+      alert("Please select a file");
+      return;
+    }
+
+    const file = fileInput.files[0];
+    status.innerText = "Requesting upload URL...";
+
+    try {
+      // 1️⃣ Get presigned URL from API Gateway
+      const response = await fetch(
+        "https://lkdcmght3i.execute-api.us-east-1.amazonaws.com/prod/upload-url"
+      );
+
+      const data = await response.json();
+
+      const uploadUrl = data.uploadUrl;
+
+      if (!uploadUrl) {
+        console.error("Full response:", data);
+        status.innerText = "❌ Failed to get upload URL";
+        return;
+      }
+
+      status.innerText = "Uploading to S3...";
+
+      // 2️⃣ Upload directly to S3
+      await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "image/jpeg"
+        },
+        body: file
+      });
+
+      status.innerText = "✅ Upload successful! Receipt sent for processing.";
+
+    } catch (err) {
+      console.error("Upload error:", err);
+      status.innerText = "❌ Upload failed. Check console.";
+    }
+  }
+</script>
+</body>
+</html>
